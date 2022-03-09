@@ -1,53 +1,25 @@
-from pytube import YouTube
-import datetime
+from pytube import *
+from slugify import slugify
 import os
+playlist_link = 'https://www.youtube.com/playlist?list=PLl6lrX1yD3BSjiLogL5cYODGdK7T2Km__'
 
+playlist = Playlist(playlist_link)
+print('Number of videos in playlist: %s' % len(playlist.video_urls))
+path = 'C:/Users/Francesco/Videos/Casey Neistat'
+os.chdir(path)
+offset = 225
 
-class YtDownloader():
-
-    def __init__(self, link, path):
-        self.link = link
-        self.path = path
-        self.downloader = YouTube(self.link)
-
-    def get_video_info(self):
-        info = {}
-        info['author'] = self.downloader.author
-        info['length'] = str(datetime.timedelta(seconds=self.downloader.length))[2:]
-        info['title'] = self.downloader.title
-        info['publish_date'] = datetime.datetime.strftime(self.downloader.publish_date, '%d-%m-%Y')
-        info['views'] = self.downloader.views
-        return info
-
-
-    def download_video(self):
-        # self.downloader.streams.filter().first().download(self.path)
-        streams = self.downloader.streams.order_by('resolution').filter(progressive=True)
-        smallest = streams.last()
-        for i in range(len(streams)):
-            if streams[i].filesize < smallest.filesize:
-                smallest = streams[i]
-        if smallest.filesize < 52427799:
-            smallest.download(self.path)
-            return True
-        return False
-#Trying to find the stream with the highest resolution and a file size lower than 50MB.
-
-
-    def get_video_path(self):
-        return self.path + '/' + os.listdir(self.path)[0]
-
-    def delete_video(self):
-        os.remove(self.path + '/' + os.listdir(self.path)[0])
-
-def main(url):
-    yt = YtDownloader(url,'videos')
-    if yt.download_video():
-        return yt.get_video_path(), yt.get_video_info()
-    return None
-
-if __name__ == '__main__':
-    main()
-
-
-
+for index in range(len(playlist) - offset):
+    video = YouTube(playlist[index + offset])
+    filename = "{} - {}.mp4".format(index + offset, slugify(video.title))
+    if os.path.isfile(filename):
+        print("File already exists!")
+        continue
+    print("Downloading {} - {}".format(index + offset,video.title))
+    video.streams. \
+        filter(type='video', progressive=True, file_extension='mp4'). \
+        order_by('resolution'). \
+        desc(). \
+        first(). \
+        download(output_path= path,
+                 filename=filename)
